@@ -17,17 +17,9 @@ jobs:
           config: >
             [
               {
-                "command": "black",
-                "permission": "none",
-                "issue_type": "pull-request",
-                "allow_edits": true,
-                "repository": "project-monai/monai-code-formatter"
-              },
-              {
                 "command": "integration",
                 "permission": "none",
                 "issue_type": "pull-request",
-                "allow_edits": true,
-                "repository": "project-monai/monai",
-              },
+                "allow_edits": true
+              }
             ]
