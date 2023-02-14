@@ -1,34 +1,51 @@
----
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+name: 🐛 Bug Report
+description: Create a report to help us reproduce and fix the bug
+labels: 'bug'
 
----
+body:
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+- type: markdown
+  attributes:
+    value: >
+      #### Before submitting a bug, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/Project-MONAI/MONAI/issues?q=is%3Aissue+sort%3Acreated-desc+).
+- type: textarea
+  attributes:
+    label: Bug description
+    description: |
+      Please provide a clear and concise description of what the bug is.
+    placeholder: |
+      A clear and concise description of what the bug is.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Environment
+    description: |
+      Please run the following and paste the output below.
+      ```sh
+      python -c 'import monai; monai.config.print_debug_info()'
+      ```
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Code to Reproduce
+    description: |
+      Please provide a ca minimal example so that we can reproduce the error by running the code.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Install '....'
-3. Run commands '....'
+      It is very important for the snippet to be as succinct (minimal) as possible, so please take time to trim down any irrelevant code to help us debug efficiently.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+      Please also paste or describe the results you observe instead of the expected results. If you observe an error, please paste the error message including the **full** traceback of the exception (please wrap error messages in ```` ```triple quotes blocks``` ````.)
+      If applicable, add screenshots to help explain your problem.
+    placeholder: |
+      A minimal example so that we can reproduce the error by running the code.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Environment**
-
-Ensuring you use the relevant python executable, please paste the output of:
-
-```
-python -c 'import monai; monai.config.print_debug_info()'
-```
-
-**Additional context**
-Add any other context about the problem here.
+      ```python
+      # Sample code to reproduce the problem
+      ```
+  validations:
+    required: false
+- type: markdown
+  attributes:
+    value: >
+      Thanks for contributing to MONAI 🎉!
