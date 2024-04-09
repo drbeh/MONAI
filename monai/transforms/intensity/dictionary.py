@@ -172,7 +172,7 @@ DEFAULT_POST_FIX = PostFix.meta()
 class RandGaussianNoised(RandomizableTransform, MapTransform):
     """
     Dictionary-based version :py:class:`monai.transforms.RandGaussianNoise`.
-    Add Gaussian noise to image. This transform assumes all the expected fields have same shape, if want to add
+    Add Gaussian noise to image. This transform assumes all the expected fields have same shape, if you want to add
     different noise for every field, please use this transform separately.
 
     Args:
@@ -183,6 +183,7 @@ class RandGaussianNoised(RandomizableTransform, MapTransform):
         std: Standard deviation (spread) of distribution.
         dtype: output data type, if None, same as input image. defaults to float32.
         allow_missing_keys: don't raise exception if key is missing.
+        sample_std: If True, sample the spread of the Gaussian distribution uniformly from 0 to std.
     """
 
     backend = RandGaussianNoise.backend
@@ -195,10 +196,11 @@ class RandGaussianNoised(RandomizableTransform, MapTransform):
         std: float = 0.1,
         dtype: DtypeLike = np.float32,
         allow_missing_keys: bool = False,
+        sample_std: bool = True,
     ) -> None:
         MapTransform.__init__(self, keys, allow_missing_keys)
         RandomizableTransform.__init__(self, prob)
-        self.rand_gaussian_noise = RandGaussianNoise(mean=mean, std=std, prob=1.0, dtype=dtype)
+        self.rand_gaussian_noise = RandGaussianNoise(mean=mean, std=std, prob=1.0, dtype=dtype, sample_std=sample_std)
 
     def set_random_state(
         self, seed: int | None = None, state: np.random.RandomState | None = None
@@ -373,6 +375,7 @@ class RandShiftIntensityd(RandomizableTransform, MapTransform):
         meta_keys: KeysCollection | None = None,
         meta_key_postfix: str = DEFAULT_POST_FIX,
         prob: float = 0.1,
+        channel_wise: bool = False,
         allow_missing_keys: bool = False,
     ) -> None:
         """
@@ -399,6 +402,8 @@ class RandShiftIntensityd(RandomizableTransform, MapTransform):
                 used to extract the factor value is `factor_key` is not None.
             prob: probability of shift.
                 (Default 0.1, with 10% probability it returns an array shifted intensity.)
+            channel_wise: if True, shift intensity on each channel separately. For each channel, a random offset will be chosen.
+                Please ensure that the first dimension represents the channel of the image if True.
             allow_missing_keys: don't raise exception if key is missing.
         """
         MapTransform.__init__(self, keys, allow_missing_keys)
@@ -409,7 +414,7 @@ class RandShiftIntensityd(RandomizableTransform, MapTransform):
         if len(self.keys) != len(self.meta_keys):
             raise ValueError("meta_keys should have the same length as keys.")
         self.meta_key_postfix = ensure_tuple_rep(meta_key_postfix, len(self.keys))
-        self.shifter = RandShiftIntensity(offsets=offsets, safe=safe, prob=1.0)
+        self.shifter = RandShiftIntensity(offsets=offsets, safe=safe, prob=1.0, channel_wise=channel_wise)
 
     def set_random_state(
         self, seed: int | None = None, state: np.random.RandomState | None = None
@@ -426,8 +431,15 @@ class RandShiftIntensityd(RandomizableTransform, MapTransform):
                 d[key] = convert_to_tensor(d[key], track_meta=get_track_meta())
             return d
 
+        # expect all the specified keys have same spatial shape and share same random holes
+        first_key: Hashable = self.first_key(d)
+        if first_key == ():
+            for key in self.key_iterator(d):
+                d[key] = convert_to_tensor(d[key], track_meta=get_track_meta())
+            return d
+
         # all the keys share the same random shift factor
-        self.shifter.randomize(None)
+        self.shifter.randomize(d[first_key])
         for key, factor_key, meta_key, meta_key_postfix in self.key_iterator(
             d, self.factor_key, self.meta_keys, self.meta_key_postfix
         ):
@@ -586,6 +598,7 @@ class RandScaleIntensityd(RandomizableTransform, MapTransform):
         keys: KeysCollection,
         factors: tuple[float, float] | float,
         prob: float = 0.1,
+        channel_wise: bool = False,
         dtype: DtypeLike = np.float32,
         allow_missing_keys: bool = False,
     ) -> None:
@@ -597,13 +610,15 @@ class RandScaleIntensityd(RandomizableTransform, MapTransform):
                 if single number, factor value is picked from (-factors, factors).
             prob: probability of scale.
                 (Default 0.1, with 10% probability it returns a scaled array.)
+            channel_wise: if True, scale on each channel separately. Please ensure
+                that the first dimension represents the channel of the image if True.
             dtype: output data type, if None, same as input image. defaults to float32.
             allow_missing_keys: don't raise exception if key is missing.
 
         """
         MapTransform.__init__(self, keys, allow_missing_keys)
         RandomizableTransform.__init__(self, prob)
-        self.scaler = RandScaleIntensity(factors=factors, dtype=dtype, prob=1.0)
+        self.scaler = RandScaleIntensity(factors=factors, dtype=dtype, prob=1.0, channel_wise=channel_wise)
 
     def set_random_state(
         self, seed: int | None = None, state: np.random.RandomState | None = None
@@ -620,8 +635,15 @@ class RandScaleIntensityd(RandomizableTransform, MapTransform):
                 d[key] = convert_to_tensor(d[key], track_meta=get_track_meta())
             return d
 
+        # expect all the specified keys have same spatial shape and share same random holes
+        first_key: Hashable = self.first_key(d)
+        if first_key == ():
+            for key in self.key_iterator(d):
+                d[key] = convert_to_tensor(d[key], track_meta=get_track_meta())
+            return d
+
         # all the keys share the same random scale factor
-        self.scaler.randomize(None)
+        self.scaler.randomize(d[first_key])
         for key in self.key_iterator(d):
             d[key] = self.scaler(d[key], randomize=False)
         return d

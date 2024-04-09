@@ -129,6 +129,7 @@ from .intensity.array import (
     ShiftIntensity,
     StdShiftIntensity,
     ThresholdIntensity,
+    UltrasoundConfidenceMapTransform,
 )
 from .intensity.dictionary import (
     AdjustContrastd,
@@ -276,6 +277,7 @@ from .nvtx import (
 from .post.array import (
     Activations,
     AsDiscrete,
+    DistanceTransformEDT,
     FillHoles,
     Invert,
     KeepLargestConnectedComponent,
@@ -294,6 +296,9 @@ from .post.dictionary import (
     AsDiscreteD,
     AsDiscreted,
     AsDiscreteDict,
+    DistanceTransformEDTd,
+    DistanceTransformEDTD,
+    DistanceTransformEDTDict,
     Ensembled,
     EnsembleD,
     EnsembleDict,
@@ -344,6 +349,7 @@ from .signal.array import (
     SignalRandShift,
     SignalRemoveFrequency,
 )
+from .signal.dictionary import SignalFillEmptyd, SignalFillEmptyD, SignalFillEmptyDict
 from .smooth_field.array import (
     RandSmoothDeform,
     RandSmoothFieldAdjustContrast,
@@ -380,6 +386,7 @@ from .spatial.array import (
     RandGridPatch,
     RandRotate,
     RandRotate90,
+    RandSimulateLowResolution,
     RandZoom,
     Resample,
     ResampleToMatch,
@@ -436,6 +443,9 @@ from .spatial.dictionary import (
     RandRotated,
     RandRotateD,
     RandRotateDict,
+    RandSimulateLowResolutiond,
+    RandSimulateLowResolutionD,
+    RandSimulateLowResolutionDict,
     RandZoomd,
     RandZoomD,
     RandZoomDict,
@@ -465,10 +475,8 @@ from .spatial.functional import spatial_resample
 from .traits import LazyTrait, MultiSampleTrait, RandomizableTrait, ThreadUnsafe
 from .transform import LazyTransform, MapTransform, Randomizable, RandomizableTransform, Transform, apply_transform
 from .utility.array import (
-    AddChannel,
     AddCoordinateChannels,
     AddExtremePointsChannel,
-    AsChannelFirst,
     AsChannelLast,
     CastToType,
     ClassesToIndices,
@@ -491,7 +499,6 @@ from .utility.array import (
     RemoveRepeatedChannel,
     RepeatChannel,
     SimulateDelay,
-    SplitChannel,
     SplitDim,
     SqueezeDim,
     ToCupy,
@@ -503,18 +510,12 @@ from .utility.array import (
     Transpose,
 )
 from .utility.dictionary import (
-    AddChanneld,
-    AddChannelD,
-    AddChannelDict,
     AddCoordinateChannelsd,
     AddCoordinateChannelsD,
     AddCoordinateChannelsDict,
     AddExtremePointsChanneld,
     AddExtremePointsChannelD,
     AddExtremePointsChannelDict,
-    AsChannelFirstd,
-    AsChannelFirstD,
-    AsChannelFirstDict,
     AsChannelLastd,
     AsChannelLastD,
     AsChannelLastDict,
@@ -596,9 +597,6 @@ from .utility.dictionary import (
     SimulateDelayd,
     SimulateDelayD,
     SimulateDelayDict,
-    SplitChanneld,
-    SplitChannelD,
-    SplitChannelDict,
     SplitDimd,
     SplitDimD,
     SplitDimDict,
@@ -643,6 +641,7 @@ from .utils import (
     create_scale,
     create_shear,
     create_translate,
+    distance_transform_edt,
     equalize_hist,
     extreme_points_to_image,
     generate_label_classes_crop_centers,

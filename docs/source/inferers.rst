@@ -31,6 +31,12 @@ Inferers
     :members:
     :special-members: __call__
 
+`SlidingWindowInfererAdapt`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: SlidingWindowInfererAdapt
+    :members:
+    :special-members: __call__
+
 `SaliencyInferer`
 ~~~~~~~~~~~~~~~~~
 .. autoclass:: SaliencyInferer
@@ -77,6 +83,11 @@ Mergers
     :members:
     :special-members: __call__
 
+`ZarrAvgMerger`
+~~~~~~~~~~~~~~~
+.. autoclass:: ZarrAvgMerger
+    :members:
+    :special-members: __call__
 
 
 Sliding Window Inference Function

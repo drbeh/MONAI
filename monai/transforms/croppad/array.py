@@ -386,7 +386,7 @@ class Crop(InvertibleTransform, LazyTransform):
         if roi_slices:
             if not all(s.step is None or s.step == 1 for s in roi_slices):
                 raise ValueError(f"only slice steps of 1/None are currently supported, got {roi_slices}.")
-            return ensure_tuple(roi_slices)  # type: ignore
+            return ensure_tuple(roi_slices)
         else:
             if roi_center is not None and roi_size is not None:
                 roi_center_t = convert_to_tensor(data=roi_center, dtype=torch.int16, wrap_sequence=True, device="cpu")
@@ -408,10 +408,8 @@ class Crop(InvertibleTransform, LazyTransform):
                 roi_end_t = torch.maximum(roi_end_t, roi_start_t)
             # convert to slices (accounting for 1d)
             if roi_start_t.numel() == 1:
-                return ensure_tuple([slice(int(roi_start_t.item()), int(roi_end_t.item()))])  # type: ignore
-            return ensure_tuple(  # type: ignore
-                [slice(int(s), int(e)) for s, e in zip(roi_start_t.tolist(), roi_end_t.tolist())]
-            )
+                return ensure_tuple([slice(int(roi_start_t.item()), int(roi_end_t.item()))])
+            return ensure_tuple([slice(int(s), int(e)) for s, e in zip(roi_start_t.tolist(), roi_end_t.tolist())])
 
     def __call__(  # type: ignore[override]
         self, img: torch.Tensor, slices: tuple[slice, ...], lazy: bool | None = None
@@ -591,13 +589,12 @@ class RandSpatialCrop(Randomizable, Crop):
         lazy: a flag to indicate whether this transform should execute lazily or not. Defaults to False.
     """
 
-    @deprecated_arg_default("random_size", True, False, since="1.1", replaced="1.3")
     def __init__(
         self,
         roi_size: Sequence[int] | int,
         max_roi_size: Sequence[int] | int | None = None,
         random_center: bool = True,
-        random_size: bool = True,
+        random_size: bool = False,
         lazy: bool = False,
     ) -> None:
         super().__init__(lazy)
@@ -662,13 +659,12 @@ class RandScaleCrop(RandSpatialCrop):
         lazy: a flag to indicate whether this transform should execute lazily or not. Defaults to False.
     """
 
-    @deprecated_arg_default("random_size", True, False, since="1.1", replaced="1.3")
     def __init__(
         self,
         roi_scale: Sequence[float] | float,
         max_roi_scale: Sequence[float] | float | None = None,
         random_center: bool = True,
-        random_size: bool = True,
+        random_size: bool = False,
         lazy: bool = False,
     ) -> None:
         super().__init__(
@@ -737,14 +733,13 @@ class RandSpatialCropSamples(Randomizable, TraceableTransform, LazyTransform, Mu
 
     backend = RandSpatialCrop.backend
 
-    @deprecated_arg_default("random_size", True, False, since="1.1", replaced="1.3")
     def __init__(
         self,
         roi_size: Sequence[int] | int,
         num_samples: int,
         max_roi_size: Sequence[int] | int | None = None,
         random_center: bool = True,
-        random_size: bool = True,
+        random_size: bool = False,
         lazy: bool = False,
     ) -> None:
         LazyTransform.__init__(self, lazy)
@@ -819,6 +814,7 @@ class CropForeground(Crop):
 
     """
 
+    @deprecated_arg_default("allow_smaller", old_default=True, new_default=False, since="1.2", replaced="1.5")
     def __init__(
         self,
         select_fn: Callable = is_positive,
@@ -837,9 +833,9 @@ class CropForeground(Crop):
             channel_indices: if defined, select foreground only on the specified channels
                 of image. if None, select foreground on the whole image.
             margin: add margin value to spatial dims of the bounding box, if only 1 value provided, use it for all dims.
-            allow_smaller: when computing box size with `margin`, whether allow the image size to be smaller
-                than box size, default to `True`. if the margined size is larger than image size, will pad with
-                specified `mode`.
+            allow_smaller: when computing box size with `margin`, whether to allow the image edges to be smaller than the
+                final box edges. If `False`, part of a padded output box might be outside of the original image, if `True`,
+                the image edges will be used as the box edges. Default to `True`.
             return_coords: whether return the coordinates of spatial bounding box for foreground.
             k_divisible: make each spatial dimension to be divisible by k, default to 1.
                 if `k_divisible` is an int, the same `k` be applied to all the input spatial dimensions.

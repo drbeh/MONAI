@@ -39,6 +39,7 @@ def data_from_keys(keys, h, w):
 
 
 class _RandXform(Randomizable):
+
     def randomize(self):
         self.val = self.R.random_sample()
 
@@ -48,12 +49,14 @@ class _RandXform(Randomizable):
 
 
 class TestCompose(unittest.TestCase):
+
     def test_empty_compose(self):
         c = mt.Compose()
         i = 1
         self.assertEqual(c(i), 1)
 
     def test_non_dict_compose(self):
+
         def a(i):
             return i + "a"
 
@@ -64,6 +67,7 @@ class TestCompose(unittest.TestCase):
         self.assertEqual(c(""), "abab")
 
     def test_dict_compose(self):
+
         def a(d):
             d = dict(d)
             d["a"] += 1
@@ -82,6 +86,7 @@ class TestCompose(unittest.TestCase):
         self.assertDictEqual(execute_compose(data, transforms), expected)
 
     def test_list_dict_compose(self):
+
         def a(d):  # transform to handle dict data
             d = dict(d)
             d["a"] += 1
@@ -109,6 +114,7 @@ class TestCompose(unittest.TestCase):
             self.assertDictEqual(item, expected)
 
     def test_non_dict_compose_with_unpack(self):
+
         def a(i, i2):
             return i + "a", i2 + "a2"
 
@@ -122,6 +128,7 @@ class TestCompose(unittest.TestCase):
         self.assertEqual(execute_compose(data, transforms, map_items=False, unpack_items=True), expected)
 
     def test_list_non_dict_compose_with_unpack(self):
+
         def a(i, i2):
             return i + "a", i2 + "a2"
 
@@ -135,6 +142,7 @@ class TestCompose(unittest.TestCase):
         self.assertEqual(execute_compose(data, transforms, unpack_items=True), expected)
 
     def test_list_dict_compose_no_map(self):
+
         def a(d):  # transform to handle dict data
             d = dict(d)
             d["a"] += 1
@@ -163,6 +171,7 @@ class TestCompose(unittest.TestCase):
             self.assertDictEqual(item, expected)
 
     def test_random_compose(self):
+
         class _Acc(Randomizable):
             self.rand = 0.0
 
@@ -182,7 +191,9 @@ class TestCompose(unittest.TestCase):
         self.assertAlmostEqual(c(1), 1.90734751)
 
     def test_randomize_warn(self):
+
         class _RandomClass(Randomizable):
+
             def randomize(self, foo1, foo2):
                 pass
 
@@ -267,6 +278,7 @@ TEST_COMPOSE_EXECUTE_TEST_CASES = [
 
 
 class TestComposeExecute(unittest.TestCase):
+
     @parameterized.expand(TEST_COMPOSE_EXECUTE_TEST_CASES)
     def test_compose_execute_equivalence(self, keys, pipeline):
         data = data_from_keys(keys, 12, 16)
@@ -564,23 +576,92 @@ TEST_COMPOSE_EXECUTE_LOGGING_TEST_CASES = [
     ],
 ]
 
+TEST_COMPOSE_LAZY_ON_CALL_LOGGING_TEST_CASES = [
+    [
+        mt.Compose,
+        (mt.Flip(0), mt.Spacing((1.2, 1.2))),
+        True,
+        (
+            "INFO - Accumulate pending transforms - lazy: True, pending: 0, "
+            "upcoming 'Flip', transform.lazy: False (overridden)\n"
+            "INFO - Accumulate pending transforms - lazy: True, pending: 1, "
+            "upcoming 'Spacing', transform.lazy: False (overridden)\n"
+            "INFO - Pending transforms applied: applied_operations: 2\n"
+        ),
+    ],
+    [
+        mt.SomeOf,
+        (mt.Flip(0),),
+        True,
+        (
+            "INFO - Accumulate pending transforms - lazy: True, pending: 0, "
+            "upcoming 'Flip', transform.lazy: False (overridden)\n"
+            "INFO - Pending transforms applied: applied_operations: 1\n"
+        ),
+    ],
+    [
+        mt.RandomOrder,
+        (mt.Flip(0),),
+        True,
+        (
+            "INFO - Accumulate pending transforms - lazy: True, pending: 0, "
+            "upcoming 'Flip', transform.lazy: False (overridden)\n"
+            "INFO - Pending transforms applied: applied_operations: 1\n"
+        ),
+    ],
+    [
+        mt.OneOf,
+        (mt.Flip(0),),
+        True,
+        (
+            "INFO - Accumulate pending transforms - lazy: True, pending: 0, "
+            "upcoming 'Flip', transform.lazy: False (overridden)\n"
+            "INFO - Pending transforms applied: applied_operations: 1\n"
+        ),
+    ],
+    [
+        mt.OneOf,
+        (mt.Flip(0),),
+        False,
+        ("INFO - Apply pending transforms - lazy: False, pending: 0, " "upcoming 'Flip', transform.lazy: False\n"),
+    ],
+]
+
 
 class TestComposeExecuteWithLogging(unittest.TestCase):
-    @parameterized.expand(TEST_COMPOSE_EXECUTE_LOGGING_TEST_CASES)
-    def test_compose_with_logging(self, keys, pipeline, lazy, expected):
+    LOGGER_NAME = "a_logger_name"
+
+    def init_logger(self, name=LOGGER_NAME):
         stream = StringIO()
         handler = logging.StreamHandler(stream)
         formatter = logging.Formatter("%(levelname)s - %(message)s")
         handler.setFormatter(formatter)
-        logger = logging.getLogger("a_logger_name")
+        logger = logging.getLogger(name)
         logger.setLevel(logging.INFO)
         while len(logger.handlers) > 0:
             logger.removeHandler(logger.handlers[-1])
         logger.addHandler(handler)
+        return handler, stream
+
+    @parameterized.expand(TEST_COMPOSE_EXECUTE_LOGGING_TEST_CASES)
+    def test_compose_with_logging(self, keys, pipeline, lazy, expected):
+        handler, stream = self.init_logger(name=self.LOGGER_NAME)
 
         data = data_from_keys(keys, 12, 16)
-        c = mt.Compose(deepcopy(pipeline), lazy=lazy, log_stats="a_logger_name")
+        c = mt.Compose(deepcopy(pipeline), lazy=lazy, log_stats=self.LOGGER_NAME)
         c(data)
+
+        handler.flush()
+        actual = stream.getvalue()
+        self.assertEqual(actual, expected)
+
+    @parameterized.expand(TEST_COMPOSE_LAZY_ON_CALL_LOGGING_TEST_CASES)
+    def test_compose_lazy_on_call_with_logging(self, compose_type, pipeline, lazy_on_call, expected):
+        handler, stream = self.init_logger(name=self.LOGGER_NAME)
+
+        data = data_from_keys(None, 12, 16)
+        c = compose_type(deepcopy(pipeline), log_stats=self.LOGGER_NAME)
+        c(data, lazy=lazy_on_call)
 
         handler.flush()
         actual = stream.getvalue()
@@ -588,8 +669,10 @@ class TestComposeExecuteWithLogging(unittest.TestCase):
 
 
 class TestOps:
+
     @staticmethod
     def concat(value):
+
         def _inner(data):
             return data + value
 
@@ -597,6 +680,7 @@ class TestOps:
 
     @staticmethod
     def concatd(value):
+
         def _inner(data):
             return {k: v + value for k, v in data.items()}
 
@@ -604,6 +688,7 @@ class TestOps:
 
     @staticmethod
     def concata(value):
+
         def _inner(data1, data2):
             return data1 + value, data2 + value
 
@@ -619,6 +704,7 @@ TEST_COMPOSE_EXECUTE_FLAG_TEST_CASES = [
 
 
 class TestComposeExecuteWithFlags(unittest.TestCase):
+
     @parameterized.expand(TEST_COMPOSE_EXECUTE_FLAG_TEST_CASES)
     def test_compose_execute_equivalence_with_flags(self, flags, data, pipeline):
         expected = mt.Compose(pipeline, **flags)(data)
@@ -639,6 +725,19 @@ class TestComposeExecuteWithFlags(unittest.TestCase):
                     self.assertTrue(expected[k], actual[k])
             else:
                 self.assertTrue(expected, actual)
+
+
+class TestComposeCallableInput(unittest.TestCase):
+
+    def test_value_error_when_not_sequence(self):
+        data = torch.tensor(np.random.randn(1, 5, 5))
+
+        xform = mt.Compose([mt.Flip(0), mt.Flip(0)])
+        res = xform(data)
+        np.testing.assert_allclose(data, res, atol=1e-3)
+
+        with self.assertRaises(ValueError):
+            mt.Compose(mt.Flip(0), mt.Flip(0))(data)
 
 
 if __name__ == "__main__":
